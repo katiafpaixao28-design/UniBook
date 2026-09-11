@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Cadastro Prático de Livros{% endblock %}
+
+{% block content %}
+<div class="form-page-container" style="max-width: 900px;">
+
+    <!-- ==========================================================================
+         PAINEL 1: BUSCA AUTOMÁTICA DE METADADOS & CAPAS (SEM DIGITAÇÃO MANUAL)
+         ========================================================================== -->
+    <div class="fast-add-panel">
+        <div class="fast-add-title">
+            <span>⚡ Assistente de Cadastro Automático (Open Library)</span>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Evite digitar manualmente: busque pelo nome da obra ou ISBN para localizar os dados e a <strong>capa oficial em alta qualidade</strong> automaticamente:
+        </p>
+
+        <form method="GET" action="{{ url_for('books.adicionar_livro') }}" style="display: flex; gap: 0.5rem;">
+            <div class="search-input-wrapper" style="flex: 1;">
+                <span class="search-icon">🔍</span>
+                <input type="text" name="busca_online" class="form-control" 
+                       placeholder="Ex: Dom Casmurro, Duna, 1984, O Pequeno Príncipe, Clean Code..." 
+                       value="{{ busca_online or '' }}" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar Dados & Capa</button>
+            {% if busca_online %}
+                <a href="{{ url_for('books.adicionar_livro') }}" class="btn btn-outline-secondary">Limpar</a>
+            {% endif %}
+        </form>
+
+        <!-- Resultados da Busca Automática -->
+        {% if resultados_online %}
+            <div style="margin-top: 1.25rem;">
+                <h4 style="font-size: 0.92rem; color: var(--unibook-blue); font-weight: 800; margin-bottom: 0.75rem;">
+                    Livros Encontrados (Clique para importar automaticamente):
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+                    {% for item in resultados_online %}
+                        <div class="suggested-card" style="justify-content: space-between;">
+                            <div style="display: flex; gap: 0.85rem; align-items: center;">
+                                {% if item.capa_url %}
+                                    <img src="{{ item.capa_url }}" alt="Capa" class="suggested-cover">
+                                {% else %}
+                                    <div class="suggested-cover" style="display: flex; align-items: center; justify-content: center; background: #e2e8f0; font-size: 1.5rem;">📖</div>
+                                {% endif %}
+                                <div>
+                                    <div class="suggested-title">{{ item.titulo }}</div>
+                                    <div style="color: var(--text-muted); font-size: 0.8rem;">
+                                        Por <strong>{{ item.autor }}</strong> | Ano: {{ item.ano or 'N/A' }} | Tema Sugerido: <span class="badge-tema badge-{{ item.tema|lower|replace('/', '-')|replace(' ', '-') }}">{{ item.tema }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form method="POST" action="{{ url_for('books.adicionar_rapido') }}">
+                                <input type="hidden" name="titulo" value="{{ item.titulo }}">
+                                <input type="hidden" name="autor" value="{{ item.autor }}">
+                                <input type="hidden" name="tema" value="{{ item.tema }}">
+                                <input type="hidden" name="ano" value="{{ item.ano or '' }}">
+                                <input type="hidden" name="quantidade" value="3">
+                                <input type="hidden" name="sinopse" value="{{ item.sinopse }}">
+                                <input type="hidden" name="capa_url" value="{{ item.capa_url or '' }}">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    📥 Importar no Acervo
+                                </button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ==========================================================================
+         PAINEL 2: SUGESTÕES RÁPIDAS EM 1 CLIQUE (ACERVO CURADO POR TEMAS)
+         ========================================================================== -->
+    <div class="section-box" style="margin-bottom: 2rem;">
+        <div class="section-header">
+            <h3 style="font-size: 1.15rem; color: var(--unibook-blue); font-weight: 800;">
+                📦 Importação Express em 1 Clique (Obras Populares UniEnsino)
+            </h3>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Adicione obras clássicas e acadêmicas de diversos temas instantaneamente sem preencher formulários:
+        </p>
+
+        <div class="suggested-books-grid">
+            {% for sug in sugestoes %}
+                <div class="suggested-card">
+                    <img src="{{ sug.capa_url }}" alt="Capa" class="suggested-cover">
+                    <div class="suggested-info">
+                        <div class="suggested-title">{{ sug.titulo }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+                            {{ sug.autor }} ({{ sug.ano }})
+                        </div>
+                        <span class="badge-tema badge-{{ sug.tema|lower|replace('/', '-')|replace(' ', '-') }}" style="font-size: 0.65rem;">
+                            {{ sug.tema }}
+                        </span>
+                        <form method="POST" action="{{ url_for('books.adicionar_rapido') }}" style="margin-top: 0.5rem;">
+                            <input type="hidden" name="titulo" value="{{ sug.titulo }}">
+                            <input type="hidden" name="autor" value="{{ sug.autor }}">
+                            <input type="hidden" name="tema" value="{{ sug.tema }}">
+                            <input type="hidden" name="ano" value="{{ sug.ano }}">
+                            <input type="hidden" name="quantidade" value="{{ sug.quantidade }}">
+                            <input type="hidden" name="sinopse" value="{{ sug.sinopse }}">
+                            <input type="hidden" name="capa_url" value="{{ sug.capa_url }}">
+                            <button type="submit" class="btn btn-outline-primary btn-sm" style="width: 100%; font-size: 0.72rem; padding: 0.25rem;">
+                                + Adicionar em 1 Clique
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         PAINEL 3: FORMULÁRIO COMPLETO (CASO QUEIRA AJUSTAR OU INSERIR MANUALMENTE)
+         ========================================================================== -->
+    <div class="form-card">
+        <div class="form-header">
+            <h2>📖 Formulário de Livro Personalizado</h2>
+            <p>Se preferir, preencha ou ajuste os dados da obra abaixo:</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('books.adicionar_livro') }}" class="standard-form">
+            <div class="form-group">
+                <label for="titulo">Título da Obra *</label>
+                <input type="text" id="titulo" name="titulo" class="form-control" 
+                       placeholder="ex: Dom Casmurro" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="autor">Autor(es) *</label>
+                    <input type="text" id="autor" name="autor" class="form-control" 
+                           placeholder="ex: Machado de Assis" required>
+                </div>
+
+                <div class="form-group col-half">
+                    <label for="tema">Tema / Gênero Literário *</label>
+                    <select id="tema" name="tema" class="form-control" required>
+                        <option value="" disabled selected>Selecione um tema...</option>
+                        {% for t in temas %}
+                            <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="ano">Ano de Publicação</label>
+                    <input type="number" id="ano" name="ano" class="form-control" 
+                           placeholder="ex: 1899" min="1000" max="2099">
+                </div>
+
+                <div class="form-group col-half">
+                    <label for="quantidade">Quantidade de Exemplares</label>
+                    <input type="number" id="quantidade" name="quantidade" class="form-control" 
+                           value="3" min="1" max="100" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="capa_url">URL da Imagem da Capa (Opcional):</label>
+                <input type="url" id="capa_url" name="capa_url" class="form-control" 
+                       placeholder="https://exemplo.com/capa.jpg">
+                <small class="form-help">Se deixar em branco, o UniBook usará uma capa estilizada com o tema do livro.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="sinopse">Sinopse / Resumo</label>
+                <textarea id="sinopse" name="sinopse" rows="3" class="form-control" 
+                          placeholder="Breve resumo da obra para consulta dos estudantes..."></textarea>
+            </div>
+
+            <div class="form-actions">
+                <a href="{{ url_for('books.listar_livros') }}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-danger">Salvar Livro no Acervo</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

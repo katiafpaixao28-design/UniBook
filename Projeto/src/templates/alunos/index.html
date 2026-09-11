@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Alunos da UniEnsino{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h2>🎓 Alunos da Faculdade UniEnsino</h2>
+            <p>Gerencie o cadastro de estudantes autorizados no UniBook</p>
+        </div>
+        <div class="page-actions">
+            <a href="{{ url_for('students.cadastrar_aluno') }}" class="btn btn-primary">+ Cadastrar Novo Aluno</a>
+        </div>
+    </div>
+
+    <!-- Barra de Busca de Alunos -->
+    <div class="filter-card">
+        <form method="GET" action="{{ url_for('students.listar_alunos') }}" class="search-form">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" name="busca" class="form-control" 
+                       placeholder="Buscar por nome, RA/matrícula ou curso..." value="{{ busca }}">
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar</button>
+            {% if busca %}
+                <a href="{{ url_for('students.listar_alunos') }}" class="btn btn-outline-secondary">Limpar Busca</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Regra de Negócio em Destaque -->
+    {% if usuario_tipo == 'bibliotecario' %}
+        <div class="alert alert-info">
+            ℹ️ <strong>Perfil Bibliotecário:</strong> Você pode consultar e matricular alunos. Conforme as diretrizes institucionais, 
+            <strong>a alteração de e-mails de estudantes é restrita ao Administrador</strong> e protegida contra alterações não autorizadas.
+        </div>
+    {% endif %}
+
+    <!-- Tabela de Alunos -->
+    {% if alunos %}
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>RA / Matrícula</th>
+                        <th>Nome Completo</th>
+                        <th>Curso</th>
+                        <th>E-mail Institucional</th>
+                        <th>Cadastro</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aluno in alunos %}
+                    <tr>
+                        <td><span class="badge-ra">{{ aluno.matricula }}</span></td>
+                        <td><strong>{{ aluno.nome }}</strong></td>
+                        <td><span class="badge-curso">{{ aluno.curso }}</span></td>
+                        <td>
+                            <a href="mailto:{{ aluno.email }}" class="btn-link">{{ aluno.email }}</a>
+                        </td>
+                        <td>{{ aluno.criado_em[:10] if aluno.criado_em else '-' }}</td>
+                        <td class="text-center">
+                            <div style="display: flex; gap: 0.35rem; justify-content: center;">
+                                <!-- Botão Editar Dados -->
+                                <button type="button" class="btn btn-outline-primary btn-sm" 
+                                        onclick="abrirModalEditar({{ aluno.id }}, '{{ aluno.nome }}', '{{ aluno.matricula }}', '{{ aluno.curso }}', '{{ aluno.email }}')">
+                                    ✏️ Editar
+                                </button>
+
+                                <!-- Botão Excluir (Exclusivo do Administrador!) -->
+                                {% if usuario_tipo == 'admin' %}
+                                    <form method="POST" action="{{ url_for('students.excluir_aluno', aluno_id=aluno.id) }}" 
+                                          onsubmit="return confirm('Confirma a exclusão do(a) aluno(a) \'{{ aluno.nome }}\' (RA: {{ aluno.matricula }})?');"
+                                          style="display:inline;">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir Aluno">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">👥</div>
+            <h3 style="color: var(--unibook-blue); font-weight: 800;">Nenhum aluno encontrado</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Não há estudantes cadastrados com os critérios informados.</p>
+            <a href="{{ url_for('students.listar_alunos') }}" class="btn btn-outline-primary">Ver Todos os Alunos</a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal para Edição do Aluno -->
+<div id="modalEditarAluno" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: var(--radius-md); padding: 1.75rem; max-width: 500px; width: 90%; box-shadow: var(--shadow-lg);">
+        <h3 style="color: var(--unibook-blue); font-weight: 800; margin-bottom: 0.75rem;">✏️ Editar Cadastro do Aluno</h3>
+        
+        <form id="formEditarAluno" method="POST" action="">
+            <div class="form-group">
+                <label for="editNome">Nome Completo:</label>
+                <input type="text" id="editNome" name="nome" class="form-control" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="editMatricula">RA / Matrícula:</label>
+                    <input type="text" id="editMatricula" name="matricula" class="form-control" required>
+                </div>
+                <div class="form-group col-half">
+                    <label for="editCurso">Curso:</label>
+                    <select id="editCurso" name="curso" class="form-control" required>
+                        {% for c in cursos %}
+                            <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="editEmail">
+                    E-mail Institucional:
+                    {% if usuario_tipo == 'bibliotecario' %}
+                        <span style="color: var(--unibook-red); font-size: 0.75rem; font-weight: 700;">
+                            (🔒 Bloqueado para Bibliotecário)
+                        </span>
+                    {% endif %}
+                </label>
+                <input type="email" id="editEmail" name="email" class="form-control" 
+                       {% if usuario_tipo == 'bibliotecario' %}readonly style="background: #f1f5f9; cursor: not-allowed;"{% endif %} required>
+                {% if usuario_tipo == 'bibliotecario' %}
+                    <small style="color: var(--unibook-red); font-weight: 600; display: block; margin-top: 0.25rem;">
+                        O bibliotecário não tem autorização para alterar o e-mail do aluno.
+                    </small>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="fecharModalEditar()">Cancelar</button>
+                <button type="submit" class="btn btn-primary btn-sm">Salvar Alterações</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function abrirModalEditar(id, nome, matricula, curso, email) {
+    document.getElementById('editNome').value = nome;
+    document.getElementById('editMatricula').value = matricula;
+    document.getElementById('editCurso').value = curso;
+    document.getElementById('editEmail').value = email;
+    document.getElementById('formEditarAluno').action = '/alunos/' + id + '/editar';
+    document.getElementById('modalEditarAluno').style.display = 'flex';
+}
+function fecharModalEditar() {
+    document.getElementById('modalEditarAluno').style.display = 'none';
+}
+</script>
+{% endblock %}

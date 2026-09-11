@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Catálogo & Consulta ao Acervo{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h2>📚 Portal de Consulta ao Acervo</h2>
+            <p>Catálogo geral da Faculdade UniEnsino com capas, sinopses e filtros por temas literários</p>
+        </div>
+        <div class="page-actions">
+            {% if usuario_tipo in ['admin', 'bibliotecario'] %}
+                <a href="{{ url_for('books.adicionar_livro') }}" class="btn btn-danger">+ Cadastrar Livro Prático</a>
+            {% elif usuario_tipo == 'aluno' %}
+                <a href="{{ url_for('loans.meus_emprestimos') }}" class="btn btn-outline-primary">📖 Meus Empréstimos</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Barra de Filtros Temáticos e Busca no Acervo -->
+    <div class="filter-card">
+        <div class="theme-buttons" style="margin-bottom: 1rem;">
+            <a href="{{ url_for('books.listar_livros', tema='Todos', busca=busca) }}" 
+               class="btn-theme-filter {% if tema_ativo == 'Todos' or not tema_ativo %}active{% endif %}">
+                Todos os Temas
+            </a>
+            {% for t in temas %}
+                <a href="{{ url_for('books.listar_livros', tema=t, busca=busca) }}" 
+                   class="btn-theme-filter {% if tema_ativo == t %}active{% endif %}">
+                    {% if t == 'Comédia' %}🎭
+                    {% elif t == 'Romance' %}💖
+                    {% elif t == 'Ficção Científica' %}🚀
+                    {% elif t == 'Suspense/Terror' %}🕵️
+                    {% elif t == 'Acadêmico/Técnico' %}💻
+                    {% elif t == 'Fantasia' %}🧙
+                    {% elif t == 'Aventura' %}🗺️
+                    {% else %}📖{% endif %}
+                    {{ t }}
+                </a>
+            {% endfor %}
+        </div>
+
+        <form method="GET" action="{{ url_for('books.listar_livros') }}" class="search-form">
+            <input type="hidden" name="tema" value="{{ tema_ativo }}">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" name="busca" class="form-control" 
+                       placeholder="Buscar por título da obra, autor ou palavra-chave..." value="{{ busca }}">
+            </div>
+            <button type="submit" class="btn btn-primary">Buscar no Acervo</button>
+            {% if busca or (tema_ativo and tema_ativo != 'Todos') %}
+                <a href="{{ url_for('books.listar_livros') }}" class="btn btn-outline-secondary">Limpar Filtros</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Resultados -->
+    <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+        Mostrando <strong>{{ livros|length }}</strong> obra(s) 
+        {% if tema_ativo and tema_ativo != 'Todos' %}
+            no tema <strong>{{ tema_ativo }}</strong>
+        {% endif %}
+        {% if busca %}
+            para o termo "<em>{{ busca }}</em>"
+        {% endif %}
+    </div>
+
+    <!-- Grid de Livros com Capa do Lado do Nome -->
+    {% if livros %}
+        <div class="books-grid">
+            {% for livro in livros %}
+                <div class="book-card-horizontal">
+                    <!-- Capa do Livro à Esquerda -->
+                    <div class="book-cover-container">
+                        {% if livro.capa_url %}
+                            <img src="{{ livro.capa_url }}" alt="Capa de {{ livro.titulo }}" class="book-cover-img"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="book-cover-fallback" style="display: none;">
+                                <span class="book-cover-fallback-icon">📖</span>
+                                <span class="book-cover-fallback-title">{{ livro.titulo }}</span>
+                            </div>
+                        {% else %}
+                            <div class="book-cover-fallback">
+                                <span class="book-cover-fallback-icon">📖</span>
+                                <span class="book-cover-fallback-title">{{ livro.titulo }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Informações do Livro à Direita -->
+                    <div class="book-info-side">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                <span class="badge-tema badge-{{ livro.tema|lower|replace('/', '-')|replace(' ', '-') }}">
+                                    {{ livro.tema }}
+                                </span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">{{ livro.ano or '-' }}</span>
+                            </div>
+
+                            <h3 class="book-title">{{ livro.titulo }}</h3>
+                            <p class="book-author">Por <strong>{{ livro.autor }}</strong></p>
+                            
+                            <div class="book-rating-badge">
+                                {% if livro.total_avaliacoes > 0 %}
+                                    ⭐ {{ livro.media_avaliacoes }} <span style="font-weight: normal;">({{ livro.total_avaliacoes }} avaliações)</span>
+                                {% else %}
+                                    ⭐ <span>Seja o primeiro a avaliar</span>
+                                {% endif %}
+                            </div>
+
+                            {% if livro.sinopse %}
+                                <p class="book-synopsis">{{ livro.sinopse }}</p>
+                            {% else %}
+                                <p class="book-synopsis text-muted">Exemplar físico disponível para empréstimo aos discentes.</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="book-card-bottom">
+                            <div>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">Estoque:</span>
+                                <strong style="color: {% if livro.quantidade > 0 %}var(--success){% else %}var(--danger){% endif %}; font-size: 0.85rem;">
+                                    {{ livro.quantidade }} un.
+                                </strong>
+                            </div>
+
+                            <div style="display: flex; gap: 0.35rem; align-items: center;">
+                                <a href="{{ url_for('books.detalhes_livro', livro_id=livro.id) }}" class="btn btn-outline-primary btn-sm">
+                                    Ver Detalhes
+                                </a>
+
+                                {% if usuario_tipo == 'aluno' and livro.quantidade > 0 %}
+                                    <form method="POST" action="{{ url_for('loans.pegar_emprestado', livro_id=livro.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            Emprestar
+                                        </button>
+                                    </form>
+                                {% endif %}
+
+                                {% if usuario_tipo in ['admin', 'bibliotecario'] %}
+                                    <form method="POST" action="{{ url_for('books.excluir_livro', livro_id=livro.id) }}" 
+                                          onsubmit="return confirm('Confirma a exclusão definitiva do livro \'{{ livro.titulo }}\' do acervo?');"
+                                          style="display:inline;">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir livro">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📭</div>
+            <h3 style="color: var(--unibook-blue); font-weight: 800;">Nenhum livro encontrado</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Nenhuma obra corresponde aos filtros de tema ou busca selecionados.</p>
+            <a href="{{ url_for('books.listar_livros') }}" class="btn btn-outline-primary">Ver Catálogo Completo</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

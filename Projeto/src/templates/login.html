@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Acesso ao Acervo{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <!-- Logo Oficial em Destaque na Tela Inicial -->
+        <div class="auth-logo-wrapper">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Oficial UniBook" class="auth-logo-img">
+        </div>
+        
+        <h2 class="auth-title"><span class="uni-part">Uni</span><span class="red-text">Book</span></h2>
+        <p class="auth-subtitle">Portal de Consulta ao Acervo - Faculdade UniEnsino</p>
+
+        <!-- Seção de Acesso Rápido para os 3 Perfis -->
+        <div class="fast-login-box">
+            <div class="fast-login-header">
+                <span>⚡ ACESSO RÁPIDO EM 1 CLIQUE</span>
+            </div>
+            <p class="fast-login-desc">Selecione o perfil desejado para navegar instantaneamente sem digitar senhas:</p>
+            
+            <div class="fast-login-grid">
+                <!-- 1. Perfil Administrador -->
+                <a href="{{ url_for('auth.login_rapido', perfil='admin') }}" class="btn-fast-card fast-admin">
+                    <span class="fast-icon">🛡️</span>
+                    <div class="fast-info">
+                        <strong>Administrador</strong>
+                        <small>Acesso total (alunos, acervo, configurações e e-mails)</small>
+                    </div>
+                </a>
+
+                <!-- 2. Perfil Bibliotecário -->
+                <a href="{{ url_for('auth.login_rapido', perfil='bibliotecario') }}" class="btn-fast-card fast-biblio">
+                    <span class="fast-icon">📚</span>
+                    <div class="fast-info">
+                        <strong>Bibliotecário</strong>
+                        <small>Renovações, multas, acervo (não altera e-mails dos alunos)</small>
+                    </div>
+                </a>
+
+                <!-- 3. Perfil Aluno -->
+                <a href="{{ url_for('auth.login_rapido', perfil='aluno') }}" class="btn-fast-card fast-aluno">
+                    <span class="fast-icon">🎓</span>
+                    <div class="fast-info">
+                        <strong>Aluno UniEnsino</strong>
+                        <small>Empréstimo de livros, avaliações com estrelas e consultas</small>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="auth-divider">
+            <span>OU ENTRE COM CREDENCIAIS</span>
+        </div>
+
+        <!-- Formulário Tradicional de Login -->
+        <form method="POST" action="{{ url_for('auth.login_view') }}" class="auth-form" id="loginForm">
+            <div class="form-group">
+                <label for="identificador">E-mail ou Matrícula / RA</label>
+                <input type="text" id="identificador" name="identificador" class="form-control" 
+                       placeholder="ex: admin@uniensino.edu.br ou 20261001" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" name="senha" class="form-control" 
+                       placeholder="Digite sua senha" required>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; font-size: 0.85rem;">
+                <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                    <input type="checkbox" name="lembrar" checked> Lembrar-me
+                </label>
+                <div>
+                    <button type="button" class="btn-link" onclick="preencher('admin@uniensino.edu.br', 'admin123')">Admin</button> |
+                    <button type="button" class="btn-link" onclick="preencher('bibliotecario@uniensino.edu.br', 'biblio123')">Biblio</button> |
+                    <button type="button" class="btn-link" onclick="preencher('aluno@uniensino.edu.br', 'aluno123')">Aluno</button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Entrar no UniBook</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function preencher(email, senha) {
+    document.getElementById('identificador').value = email;
+    document.getElementById('senha').value = senha;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Início - Portal de Consulta ao Acervo{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+
+    <!-- ==========================================================================
+         BLOCO 1: PORTAL DE CONSULTA AO ACERVO (DESTACADO E SEPARADO)
+         ========================================================================== -->
+    <div class="portal-consulta-box">
+        <div class="portal-tag">
+            <span>🔍 PORTAL DE CONSULTA AO ACERVO</span>
+        </div>
+
+        <div class="portal-header">
+            <div>
+                <h1 class="portal-title">
+                    <span class="uni-part">Uni</span><span class="red-accent">Book</span> - Biblioteca UniEnsino
+                </h1>
+                <p class="portal-desc">
+                    Consulte o catálogo da biblioteca universitária, filtre por temas literários ou pesquise por títulos e autores para empréstimos imediatos.
+                </p>
+            </div>
+            <div>
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="UniBook Logo" class="portal-logo-mini">
+            </div>
+        </div>
+
+        <!-- Barra de Busca Rápida do Portal -->
+        <form method="GET" action="{{ url_for('books.listar_livros') }}" class="portal-search-bar">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" name="busca" class="form-control" 
+                       placeholder="Digite o título do livro, autor ou tema para consultar no acervo..." required>
+            </div>
+            <button type="submit" class="btn btn-primary">Pesquisar no Acervo</button>
+            <a href="{{ url_for('books.listar_livros') }}" class="btn btn-outline-secondary">Abrir Portal Completo</a>
+        </form>
+
+        <!-- Filtragem Direta por Temas no Portal -->
+        <div class="portal-themes-row">
+            <span class="portal-themes-label">🎯 Filtrar Diretamente por Tema:</span>
+            <div class="theme-buttons">
+                <a href="{{ url_for('books.listar_livros', tema='Todos') }}" class="btn-theme-filter">
+                    Todos os Temas
+                </a>
+                {% for t in temas %}
+                    <a href="{{ url_for('books.listar_livros', tema=t) }}" class="btn-theme-filter">
+                        {% if t == 'Comédia' %}🎭
+                        {% elif t == 'Romance' %}💖
+                        {% elif t == 'Ficção Científica' %}🚀
+                        {% elif t == 'Suspense/Terror' %}🕵️
+                        {% elif t == 'Acadêmico/Técnico' %}💻
+                        {% elif t == 'Fantasia' %}🧙
+                        {% elif t == 'Aventura' %}🗺️
+                        {% else %}📖{% endif %}
+                        {{ t }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Ações do Perfil -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                Conectado como: <strong>{{ usuario_logado }}</strong> (Perfil: <span class="user-role-tag role-{{ usuario_tipo }}">{{ usuario_tipo }}</span>)
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                {% if usuario_tipo in ['admin', 'bibliotecario'] %}
+                    <a href="{{ url_for('books.adicionar_livro') }}" class="btn btn-danger btn-sm">+ Cadastrar Livro Prático</a>
+                    <a href="{{ url_for('loans.listar_todos') }}" class="btn btn-outline-primary btn-sm">📋 Gerenciar Empréstimos</a>
+                {% else %}
+                    <a href="{{ url_for('loans.meus_emprestimos') }}" class="btn btn-outline-primary btn-sm">📖 Meus Livros Retirados</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- DIVISOR VISUAL NÍTIDO SEPARANDO O PORTAL DE CONSULTA DOS LIVROS DO INÍCIO -->
+    <div class="section-separator">
+        <span class="section-separator-badge">📚 OBRAS EM DESTAQUE NO INÍCIO 📚</span>
+    </div>
+
+    <!-- ==========================================================================
+         BLOCO 2: LIVROS QUE APARECEM NO INÍCIO COM AS CAPAS DO LADO DO NOME
+         ========================================================================== -->
+    <div class="books-grid">
+        {% for livro in livros_destaque %}
+            <div class="book-card-horizontal">
+                <!-- Capa do Livro do lado do nome -->
+                <div class="book-cover-container">
+                    {% if livro.capa_url %}
+                        <img src="{{ livro.capa_url }}" alt="Capa de {{ livro.titulo }}" class="book-cover-img" 
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="book-cover-fallback" style="display: none;">
+                            <span class="book-cover-fallback-icon">📖</span>
+                            <span class="book-cover-fallback-title">{{ livro.titulo }}</span>
+                        </div>
+                    {% else %}
+                        <div class="book-cover-fallback">
+                            <span class="book-cover-fallback-icon">📖</span>
+                            <span class="book-cover-fallback-title">{{ livro.titulo }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Detalhes do Livro à Direita da Capa -->
+                <div class="book-info-side">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                            <span class="badge-tema badge-{{ livro.tema|lower|replace('/', '-')|replace(' ', '-') }}">
+                                {{ livro.tema }}
+                            </span>
+                            <small style="color: var(--text-muted); font-weight: 700;">{{ livro.ano or '-' }}</small>
+                        </div>
+
+                        <h3 class="book-title">{{ livro.titulo }}</h3>
+                        <p class="book-author">Por <strong>{{ livro.autor }}</strong></p>
+
+                        <div class="book-rating-badge">
+                            {% if livro.total_avaliacoes > 0 %}
+                                ⭐ {{ livro.media_avaliacoes }} <small class="text-muted">({{ livro.total_avaliacoes }})</small>
+                            {% else %}
+                                ⭐ <small>Novo no acervo</small>
+                            {% endif %}
+                        </div>
+
+                        <p class="book-synopsis">{{ livro.sinopse }}</p>
+                    </div>
+
+                    <div class="book-card-bottom">
+                        <div>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Estoque:</span>
+                            <strong style="color: {% if livro.quantidade > 0 %}var(--success){% else %}var(--danger){% endif %}; font-size: 0.85rem;">
+                                {{ livro.quantidade }} un.
+                            </strong>
+                        </div>
+                        <a href="{{ url_for('books.detalhes_livro', livro_id=livro.id) }}" class="btn btn-outline-primary btn-sm">
+                            Ver & Retirar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

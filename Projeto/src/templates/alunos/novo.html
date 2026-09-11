@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Cadastrar Aluno{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <div class="form-card">
+        <div class="form-header">
+            <h2>🎓 Cadastrar Novo Aluno - UniEnsino</h2>
+            <p>Cadastre o estudante para permitir o acesso aos empréstimos da biblioteca UniBook</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('students.cadastrar_aluno') }}" class="standard-form">
+            <div class="form-group">
+                <label for="nome">Nome Completo do Aluno *</label>
+                <input type="text" id="nome" name="nome" class="form-control" 
+                       placeholder="ex: Lucas Gabriel da Silva" required autofocus oninput="gerarEmailSugerido()">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-half">
+                    <label for="matricula">Matrícula / RA *</label>
+                    <input type="text" id="matricula" name="matricula" class="form-control" 
+                           placeholder="ex: 20261088" required>
+                    <small class="form-help">Número único de identificação acadêmica</small>
+                </div>
+
+                <div class="form-group col-half">
+                    <label for="curso">Curso de Graduação *</label>
+                    <select id="curso" name="curso" class="form-control" required>
+                        <option value="" disabled selected>Selecione o curso na UniEnsino...</option>
+                        {% for c in cursos %}
+                            <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">E-mail Institucional</label>
+                <input type="email" id="email" name="email" class="form-control" 
+                       placeholder="ex: lucas.silva@uniensino.edu.br">
+                <small class="form-help">Deixe em branco para gerar automaticamente com o domínio @uniensino.edu.br</small>
+            </div>
+
+            <div class="form-actions">
+                <a href="{{ url_for('students.listar_alunos') }}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Concluir Matrícula / Cadastro</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function gerarEmailSugerido() {
+    const nomeInput = document.getElementById('nome');
+    const emailInput = document.getElementById('email');
+    if (!emailInput.value || emailInput.dataset.autoFilled === "true") {
+        const partes = nomeInput.value.trim().split(/\s+/);
+        if (partes.length >= 2 && partes[0] && partes[partes.length - 1]) {
+            const primeiro = partes[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+            const ultimo = partes[partes.length - 1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+            emailInput.value = `${primeiro}.${ultimo}@uniensino.edu.br`;
+            emailInput.dataset.autoFilled = "true";
+        }
+    }
+}
+</script>
+{% endblock %}

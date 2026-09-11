@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Gestão de Empréstimos & Multas{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h2>📋 Gestão de Empréstimos & Multas</h2>
+            <p>Painel de controle para renovações, devoluções e aplicação de multas da biblioteca</p>
+        </div>
+        <div class="page-actions">
+            <a href="{{ url_for('books.listar_livros') }}" class="btn btn-outline-primary">Novo Empréstimo (Pelo Acervo)</a>
+        </div>
+    </div>
+
+    <!-- Filtro de Status -->
+    <div class="filter-card">
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <span style="font-weight: 700; font-size: 0.85rem; color: var(--unibook-blue); margin-right: 0.5rem;">Filtrar por Status:</span>
+            <a href="{{ url_for('loans.listar_todos', status='todos') }}" 
+               class="btn-theme-filter {% if status_ativo == 'todos' or not status_ativo %}active{% endif %}">Todos</a>
+            <a href="{{ url_for('loans.listar_todos', status='ativo') }}" 
+               class="btn-theme-filter {% if status_ativo == 'ativo' %}active{% endif %}">Ativos</a>
+            <a href="{{ url_for('loans.listar_todos', status='renovado') }}" 
+               class="btn-theme-filter {% if status_ativo == 'renovado' %}active{% endif %}">Renovados</a>
+            <a href="{{ url_for('loans.listar_todos', status='devolvido') }}" 
+               class="btn-theme-filter {% if status_ativo == 'devolvido' %}active{% endif %}">Devolvidos</a>
+        </div>
+    </div>
+
+    <!-- Tabela de Empréstimos -->
+    {% if emprestimos %}
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Livro</th>
+                        <th>Aluno (UniEnsino)</th>
+                        <th>Data Empréstimo</th>
+                        <th>Devolução Prevista</th>
+                        <th>Status</th>
+                        <th>Multa</th>
+                        <th class="text-center">Ações de Gestão</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in emprestimos %}
+                    <tr>
+                        <td>
+                            <div class="table-book-cell">
+                                {% if emp.livro_capa_url %}
+                                    <img src="{{ emp.livro_capa_url }}" alt="Capa" class="table-book-cover">
+                                {% else %}
+                                    <div class="table-book-cover" style="display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">📖</div>
+                                {% endif %}
+                                <div>
+                                    <strong>{{ emp.livro_titulo }}</strong><br>
+                                    <small class="badge-tema badge-{{ emp.livro_tema|lower|replace('/', '-')|replace(' ', '-') }}">
+                                        {{ emp.livro_tema }}
+                                    </small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <strong>{{ emp.aluno_nome }}</strong><br>
+                            <span class="badge-ra">RA: {{ emp.aluno_matricula }}</span><br>
+                            <small style="color: var(--text-muted);">{{ emp.aluno_curso }}</small>
+                        </td>
+                        <td>{{ emp.data_emprestimo }}</td>
+                        <td>
+                            <strong>{{ emp.data_devolucao_prevista }}</strong>
+                            {% if emp.renovacoes > 0 %}
+                                <br><small style="color: var(--unibook-blue); font-weight: 700;">({{ emp.renovacoes }} renovação/ões)</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if emp.status == 'devolvido' %}
+                                <span class="user-role-tag role-aluno">Devolvido</span>
+                            {% elif emp.status == 'renovado' %}
+                                <span class="user-role-tag role-bibliotecario">Renovado</span>
+                            {% else %}
+                                <span class="user-role-tag" style="background: #eff6ff; color: var(--unibook-blue);">Ativo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if emp.multa_valor > 0 %}
+                                <span style="color: var(--unibook-red); font-weight: 800;">R$ {{ "%.2f"|format(emp.multa_valor) }}</span><br>
+                                <small style="color: var(--text-muted);">{{ emp.multa_motivo }}</small>
+                                {% if emp.multa_paga == 1 %}
+                                    <br><small style="color: var(--success); font-weight: 700;">(Paga)</small>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('loans.quitar_multa', emp_id=emp.id) }}" style="margin-top: 0.25rem;">
+                                        <button type="submit" class="btn btn-outline-primary btn-sm" style="padding: 0.15rem 0.4rem; font-size: 0.7rem;">
+                                            Dar Baixa
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.85rem;">Nenhuma</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if emp.status != 'devolvido' %}
+                                <div style="display: flex; gap: 0.35rem; justify-content: center; flex-wrap: wrap;">
+                                    <!-- Botão Renovar (+7 dias) -->
+                                    <form method="POST" action="{{ url_for('loans.renovar', emp_id=emp.id) }}">
+                                        <button type="submit" class="btn btn-outline-primary btn-sm" title="Renovar +7 dias">
+                                            🔄 Renovar
+                                        </button>
+                                    </form>
+
+                                    <!-- Botão Devolver -->
+                                    <form method="POST" action="{{ url_for('loans.devolver', emp_id=emp.id) }}">
+                                        <button type="submit" class="btn btn-success btn-sm" title="Confirmar Devolução">
+                                            📥 Devolver
+                                        </button>
+                                    </form>
+
+                                    <!-- Botão Aplicar Multa -->
+                                    <button type="button" class="btn btn-outline-danger btn-sm" 
+                                            onclick="abrirModalMulta({{ emp.id }}, '{{ emp.aluno_nome }}')">
+                                        ⚠️ Multa
+                                    </button>
+                                </div>
+                            {% else %}
+                                <small style="color: var(--text-muted);">Finalizado em {{ emp.data_devolucao_real }}</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📖</div>
+            <h3 style="color: var(--unibook-blue); font-weight: 800;">Nenhum empréstimo registrado</h3>
+            <p style="color: var(--text-muted);">Não há empréstimos correspondentes ao filtro atual.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal Simples para Aplicação de Multa -->
+<div id="modalMulta" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: var(--radius-md); padding: 1.75rem; max-width: 440px; width: 90%; box-shadow: var(--shadow-lg);">
+        <h3 style="color: var(--unibook-red); font-weight: 800; margin-bottom: 0.5rem;">⚠️ Aplicar Multa à Devolução</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Aluno: <strong id="modalAlunoNome"></strong>
+        </p>
+        <form id="formMulta" method="POST" action="">
+            <div class="form-group">
+                <label for="valorMulta">Valor da Multa (R$):</label>
+                <input type="text" id="valorMulta" name="valor" class="form-control" value="5.00" required>
+            </div>
+            <div class="form-group">
+                <label for="motivoMulta">Motivo da Multa:</label>
+                <select id="motivoMulta" name="motivo" class="form-control" required>
+                    <option value="Atraso na data de devolução">Atraso na data de devolução</option>
+                    <option value="Dano ou avaria à capa/páginas">Dano ou avaria à capa/páginas</option>
+                    <option value="Extravio de anexo/material complementar">Extravio de anexo/material complementar</option>
+                </select>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="fecharModalMulta()">Cancelar</button>
+                <button type="submit" class="btn btn-danger btn-sm">Confirmar Multa</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function abrirModalMulta(empId, alunoNome) {
+    document.getElementById('modalAlunoNome').innerText = alunoNome;
+    document.getElementById('formMulta').action = '/emprestimos/' + empId + '/multa';
+    document.getElementById('modalMulta').style.display = 'flex';
+}
+function fecharModalMulta() {
+    document.getElementById('modalMulta').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}UniBook{% endblock %} - Portal de Consulta ao Acervo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Barra de Navegação Superior (Branca com Logo Oficial) -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('books.dashboard') if usuario_logado else url_for('auth.login_view') }}" class="brand">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo UniBook" class="brand-logo-img">
+                <div class="brand-text">
+                    <span class="brand-name"><span class="uni-part">Uni</span><span class="book-part">Book</span></span>
+                    <span class="brand-sub">Faculdade UniEnsino</span>
+                </div>
+            </a>
+
+            <nav class="nav-menu">
+                {% if usuario_logado %}
+                    {% if usuario_tipo in ['admin', 'bibliotecario'] %}
+                        <a href="{{ url_for('books.dashboard') }}" class="nav-link">Dashboard</a>
+                        <a href="{{ url_for('books.listar_livros') }}" class="nav-link">Acervo & Temas</a>
+                        <a href="{{ url_for('loans.listar_todos') }}" class="nav-link">Empréstimos & Multas</a>
+                        <a href="{{ url_for('students.listar_alunos') }}" class="nav-link">Alunos</a>
+                    {% else %}
+                        <a href="{{ url_for('books.listar_livros') }}" class="nav-link">Consultar Acervo & Temas</a>
+                        <a href="{{ url_for('loans.meus_emprestimos') }}" class="nav-link">Meus Empréstimos</a>
+                    {% endif %}
+                {% endif %}
+            </nav>
+
+            <div class="nav-user">
+                {% if usuario_logado %}
+                    <div class="user-badge">
+                        <span class="user-avatar">👤</span>
+                        <div class="user-info">
+                            <span class="user-name">{{ usuario_logado }}</span>
+                            <span class="user-role-tag role-{{ usuario_tipo }}">{{ usuario_tipo|upper }}</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('auth.logout_view') }}" class="btn btn-outline-danger btn-sm">Sair</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login_view') }}" class="btn btn-primary btn-sm">Entrar</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Mensagens e Alertas Flash do Python -->
+    <div class="messages-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <span class="alert-icon">
+                            {% if category == 'sucesso' %}✅
+                            {% elif category == 'erro' %}⚠️
+                            {% elif category == 'aviso' %}🔔
+                            {% else %}ℹ️{% endif %}
+                        </span>
+                        <span class="alert-text">{{ message }}</span>
+                        <button type="button" class="alert-close" onclick="this.parentElement.remove();">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Área Principal da Aplicação -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Rodapé Limpo em Fundo Branco -->
+    <footer class="footer">
+        <div class="footer-container">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="UniBook Logo" class="footer-logo">
+            <p><strong>UniBook</strong> &copy; 2026 - Portal de Consulta ao Acervo da <strong>Faculdade UniEnsino</strong></p>
+            <p class="footer-sub">Organização de acervo, empréstimos, avaliações e gestão acadêmica.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Meus Livros Emprestados{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="page-header">
+        <div>
+            <h2>📖 Meus Livros Emprestados</h2>
+            <p>Acompanhe os prazos de devolução dos seus livros e avalie as obras que você já leu</p>
+        </div>
+        <div class="page-actions">
+            <a href="{{ url_for('books.listar_livros') }}" class="btn btn-primary">+ Consultar Acervo & Emprestar</a>
+        </div>
+    </div>
+
+    {% if emprestimos %}
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Livro Retirado</th>
+                        <th>Tema</th>
+                        <th>Data do Empréstimo</th>
+                        <th>Prazo de Devolução</th>
+                        <th>Status</th>
+                        <th>Multa / Pendência</th>
+                        <th>Sua Opinião</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in emprestimos %}
+                    <tr>
+                        <td>
+                            <div class="table-book-cell">
+                                {% if emp.livro_capa_url %}
+                                    <img src="{{ emp.livro_capa_url }}" alt="Capa" class="table-book-cover">
+                                {% else %}
+                                    <div class="table-book-cover" style="display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">📖</div>
+                                {% endif %}
+                                <div>
+                                    <strong>{{ emp.livro_titulo }}</strong><br>
+                                    <small style="color: var(--text-muted);">{{ emp.livro_autor }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge-tema badge-{{ emp.livro_tema|lower|replace('/', '-')|replace(' ', '-') }}">
+                                {{ emp.livro_tema }}
+                            </span>
+                        </td>
+                        <td>{{ emp.data_emprestimo }}</td>
+                        <td>
+                            <strong style="color: var(--unibook-blue);">{{ emp.data_devolucao_prevista }}</strong>
+                            {% if emp.renovacoes > 0 %}
+                                <br><small style="color: var(--success); font-weight: 700;">({{ emp.renovacoes }} renovação/ões)</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if emp.status == 'devolvido' %}
+                                <span class="user-role-tag role-aluno">Devolvido</span>
+                            {% elif emp.status == 'renovado' %}
+                                <span class="user-role-tag role-bibliotecario">Renovado</span>
+                            {% else %}
+                                <span class="user-role-tag" style="background: #eff6ff; color: var(--unibook-blue);">Ativo em Mãos</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if emp.multa_valor > 0 %}
+                                <strong style="color: var(--unibook-red);">R$ {{ "%.2f"|format(emp.multa_valor) }}</strong><br>
+                                <small style="color: var(--text-muted);">{{ emp.multa_motivo }}</small>
+                                {% if emp.multa_paga == 1 %}
+                                    <br><small style="color: var(--success); font-weight: 700;">(Quitada)</small>
+                                {% else %}
+                                    <br><small style="color: var(--unibook-red); font-weight: 700;">(Pendente de Pagamento)</small>
+                                {% endif %}
+                            {% else %}
+                                <span style="color: var(--success); font-weight: 600;">Em dia</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('books.detalhes_livro', livro_id=emp.livro_id) }}" class="btn btn-outline-primary btn-sm">
+                                ⭐ Avaliar Livro
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📚</div>
+            <h3 style="color: var(--unibook-blue); font-weight: 800;">Você não possui empréstimos ativos</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Navegue pelo nosso acervo literário e acadêmico para retirar obras da biblioteca.</p>
+            <a href="{{ url_for('books.listar_livros') }}" class="btn btn-primary">Explorar Livros Disponíveis</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
